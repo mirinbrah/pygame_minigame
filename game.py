@@ -1,5 +1,6 @@
 import pygame
 
+from gun import Gun
 from settings import *
 
 
@@ -10,6 +11,7 @@ class Game:
         self.window = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         self.play = True
+        self.cannon = Gun(self.window)
 
     def run(self):
         while self.play:
@@ -17,9 +19,13 @@ class Game:
                 if event.type == pygame.QUIT:
                     self.play = False
 
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            self.cannon.update(mouse_x)
+
+            self.window.fill(BLACK)
+            self.cannon.draw()
+
             pygame.display.update()
             self.clock.tick(FPS)
 
         pygame.quit()
-
-
