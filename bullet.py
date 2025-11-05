@@ -1,24 +1,17 @@
 import pygame
 
-class Bullet:
-    def __init__(self, screen, x, y, speed, color='yellow', radius=2):
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, screen, x, y, speed, radius=5, color='yellow'):
+        super().__init__()
         self.screen = screen
-        self.x = x
-        self.y = y
+
+        self.image = pygame.Surface((radius * 2, radius * 2), pygame.SRCALPHA)
+        pygame.draw.circle(self.image, pygame.Color(color), (radius, radius), radius)
+        self.rect = self.image.get_rect(center=(x, y))
+
         self.speed = speed
-        self.color = color
-        self.radius = radius
-        #for collision check with targets
-        self.rect = pygame.Rect(x - radius, y - radius, radius * 2, radius * 2)
 
     def update(self):
-        self.y -= self.speed
-        self.rect.y = self.y
+        self.rect.y -= self.speed
         if self.rect.bottom < 0:
-            return False
-        return True
-
-    def draw(self):
-        pygame.draw.circle(self.screen, pygame.Color(self.color),
-                           (self.x, self.y),
-                           self.radius)
+            self.kill()
