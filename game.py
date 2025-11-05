@@ -4,6 +4,7 @@ from bullet import Bullet
 from settings import *
 from target import Target
 
+
 class Game:
     def __init__(self):
         pygame.init()
@@ -20,7 +21,18 @@ class Game:
         self.last_target_spawn = pygame.time.get_ticks()
 
         self.score = 0
-        self.font = pygame.font.Font(None, 36)
+        self.font = pygame.font.Font(FONT_NAME, FONT_SIZE_NORMAL)
+        self.font_large = pygame.font.Font(FONT_NAME, FONT_SIZE_LARGE)
+
+        self.game_state = 'playing'
+
+    def reset_game(self):
+        self.score = 0
+        self.game_state = 'playing'
+        self.targets.empty()
+        self.bullets.empty()
+        self.cannon.rect.centerx = self.cannon.screen_rect.centerx
+        self.last_target_spawn = pygame.time.get_ticks()
 
     def spawn_targets(self):
         current_time = pygame.time.get_ticks()
@@ -29,14 +41,14 @@ class Game:
             new_target = Target(self.window, WIDTH)
             self.targets.add(new_target)
 
-    def handle_events(self):
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                self.play = False
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                if event.button == 1:
-                    new_bullet = Bullet(self.window, self.cannon.rect.centerx, self.cannon.rect.top, speed=10)
-                    self.bullets.add(new_bullet)
+    def check_collisions(self):
+        hits = pygame.sprite.groupcollide(self.bullets, self.targets, True, True)
+        if hits:
+            for hit_targets in hits.values():
+                self.score += len(hit_targets) * 10
+
+        if pygame.sprite.spritecollide(self.cannon, self.targets, False):
+            self.game_state = 'game_over'
 
     def update_game_state(self):
         mouse_x, _ = pygame.mouse.get_pos()
@@ -45,34 +57,68 @@ class Game:
         self.targets.update()
         self.check_collisions()
 
-    def draw_score(self):
+    def run(self):
+        while self.play:
+            if self.game_state == 'playing':
+                self.run_playing_state()
+            elif self.game_state == 'game_over':
+                self.run_gameover_state()
+        pygame.quit()
+
+    def run_playing_state(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.play = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    new_bullet = Bullet(self.window, self.cannon.rect.centerx, self.cannon.rect.top, speed=10)
+                    self.bullets.add(new_bullet)
+
+        self.spawn_targets()
+        self.update_game_state()
+
+        self.window.fill(BLACK)
+        self.cannon.draw()
+        self.bullets.draw(self.window)
+        self.targets.draw(self.window)
+
         score_text = f"Score: {self.score}"
         text_surface = self.font.render(score_text, True, WHITE)
         text_rect = text_surface.get_rect(topright=(WIDTH - 10, 10))
         self.window.blit(text_surface, text_rect)
 
-    def draw_elements(self):
-        self.window.fill(BLACK)
-        self.cannon.draw()
-        self.bullets.draw(self.window)
-        self.targets.draw(self.window)
-        self.draw_score()
         pygame.display.update()
         self.clock.tick(FPS)
 
-    def run(self):
-        while self.play:
-            self.handle_events()
-            self.spawn_targets()
-            self.update_game_state()
-            self.draw_elements()
-        pygame.quit()
+    def run_gameover_state(self):
+        self.window.fill(BLACK)
 
-    def check_collisions(self):
-        hits = pygame.sprite.groupcollide(self.bullets, self.targets, True, True)
-        if hits:
-            for hit_targets in hits.values():
-                self.score += len(hit_targets) * 10
+        game_over_text = self.font_large.render("GAME OVER", True, WHITE)
+        score_text = self.font.render(f"Your Score: {self.score}", True, WHITE)
+        restart_text = self.font.render("Restart", True, BLACK)
+        quit_text = self.font.render("Quit", True, BLACK)
 
-        if pygame.sprite.spritecollide(self.cannon, self.targets, False):
-            self.play = False
+        restart_button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2, 200, 50)
+        quit_button_rect = pygame.Rect(WIDTH // 2 - 100, HEIGHT // 2 + 60, 200, 50)
+
+        pygame.draw.rect(self.window, WHITE, restart_button_rect)
+        pygame.draw.rect(self.window, WHITE, quit_button_rect)
+
+        self.window.blit(game_over_text, game_over_text.get_rect(centerx=WIDTH // 2, centery=HEIGHT // 3))
+        self.window.blit(score_text, score_text.get_rect(centerx=WIDTH // 2, centery=HEIGHT // 3 + 80))
+        self.window.blit(restart_text, restart_text.get_rect(center=restart_button_rect.center))
+        self.window.blit(quit_text, quit_text.get_rect(center=quit_button_rect.center))
+
+        pygame.display.update()
+        self.clock.tick(FPS)
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.play = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    mouse_pos = pygame.mouse.get_pos()
+                    if restart_button_rect.collidepoint(mouse_pos):
+                        self.reset_game()
+                    if quit_button_rect.collidepoint(mouse_pos):
+                        self.play = False
