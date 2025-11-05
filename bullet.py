@@ -8,10 +8,13 @@ class Bullet:
         self.speed = speed
         self.color = color
         self.radius = radius
+        #for collision check with targets
+        self.rect = pygame.Rect(x - radius, y - radius, radius * 2, radius * 2)
 
     def update(self):
         self.y -= self.speed
-        if self.y < 0:
+        self.rect.y = self.y
+        if self.rect.bottom < 0:
             return False
         return True
 

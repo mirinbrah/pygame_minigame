@@ -3,6 +3,7 @@ import pygame
 from gun import Gun
 from bullet import Bullet
 from settings import *
+from target import Target
 
 
 class Game:
@@ -15,6 +16,17 @@ class Game:
 
         self.cannon = Gun(self.window)
         self.bullets = []
+        self.targets = []
+
+        self.target_spawn_delay = 1000
+        self.last_target_spawn = pygame.time.get_ticks()
+
+    def spawn_targets(self):
+        current_time = pygame.time.get_ticks()
+        if current_time - self.last_target_spawn > self.target_spawn_delay:
+            self.last_target_spawn = current_time
+            new_target = Target(self.window, WIDTH)
+            self.targets.append(new_target)
 
     def handle_events(self):
         for event in pygame.event.get():
@@ -30,12 +42,16 @@ class Game:
         self.cannon.update(mouse_x)
 
         self.bullets = [bullet for bullet in self.bullets if bullet.update()]
+        self.targets = [target for target in self.targets if target.update()]
+        self.check_collisions()
 
     def draw_elements(self):
         self.window.fill(BLACK)
         self.cannon.draw()
         for bullet in self.bullets:
             bullet.draw()
+        for target in self.targets:
+            target.draw()
         pygame.display.update()
         self.clock.tick(FPS)
 
@@ -47,7 +63,14 @@ class Game:
             self.update_game_state()
 
             self.draw_elements()
-
-
+            self.spawn_targets()
 
         pygame.quit()
+
+    def check_collisions(self):
+        for bullet in self.bullets[:]:
+            for target in self.targets[:]:
+                if bullet.rect.colliderect(target.rect):
+                    self.bullets.remove(bullet)
+                    self.targets.remove(target)
+                    break
