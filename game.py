@@ -1,6 +1,7 @@
 import pygame
 
 from gun import Gun
+from bullet import Bullet
 from settings import *
 
 
@@ -11,21 +12,42 @@ class Game:
         self.window = pygame.display.set_mode((WIDTH, HEIGHT))
         self.clock = pygame.time.Clock()
         self.play = True
+
         self.cannon = Gun(self.window)
+        self.bullets = []
+
+    def handle_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                self.play = False
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    new_bullet = Bullet(self.window, self.cannon.x, self.cannon.y - 20, speed=10)
+                    self.bullets.append(new_bullet)
+
+    def update_game_state(self):
+        mouse_x, _ = pygame.mouse.get_pos()
+        self.cannon.update(mouse_x)
+
+        self.bullets = [bullet for bullet in self.bullets if bullet.update()]
+
+    def draw_elements(self):
+        self.window.fill(BLACK)
+        self.cannon.draw()
+        for bullet in self.bullets:
+            bullet.draw()
+        pygame.display.update()
+        self.clock.tick(FPS)
 
     def run(self):
         while self.play:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.play = False
 
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-            self.cannon.update(mouse_x)
+            self.handle_events()
 
-            self.window.fill(BLACK)
-            self.cannon.draw()
+            self.update_game_state()
 
-            pygame.display.update()
-            self.clock.tick(FPS)
+            self.draw_elements()
+
+
 
         pygame.quit()
