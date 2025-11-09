@@ -31,6 +31,31 @@ class Game:
 
         self.bullets = [bullet for bullet in self.bullets if bullet.update()]
 
+        #variants
+        #1-Longer
+        # bullets_to_keep = []
+        #
+        # for bullet in self.bullets:
+        #     if bullet.update():
+        #         bullets_to_keep.append(bullet)
+        #
+        # self.bullets = bullets_to_keep
+        # 2-Smarter
+
+        #  len(self.bullets) - 1  -> индекс последнего элемента
+        #  -1 -> до какого индекса идем (не включая)
+        #  -1 -> шаг (назад)
+        # for i in range(len(self.bullets) - 1, -1, -1):
+             # Получаем пулю по ее индексу
+        #     bullet = self.bullets[i]
+        #
+             # Если пуля улетела
+        #     if not bullet.update():
+        #        # удаляем ее по индексу
+        #         self.bullets.pop(i)
+
+
+
     def draw_elements(self):
         self.window.fill(BLACK)
         self.cannon.draw()
