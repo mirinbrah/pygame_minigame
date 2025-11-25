@@ -1,7 +1,8 @@
 import pygame
 
-class Gun:
+class Gun(pygame.sprite.Sprite):
     def __init__(self, screen):
+        super().__init__()
         self.screen = screen
         self.screen_rect = screen.get_rect()
         self.color = 'gray'
