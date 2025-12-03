@@ -1,4 +1,5 @@
 import pygame
+import random
 from gun import Gun
 from bullet import Bullet
 from settings import *
@@ -18,10 +19,12 @@ class Game:
         self.bullets = pygame.sprite.Group()
         self.targets = pygame.sprite.Group()
 
-        self.target_spawn_delay = 1000
+        self.base_spawn_delay = 1000
         self.last_target_spawn = pygame.time.get_ticks()
 
         self.score = 0
+        self.lives = MAX_LIVES
+
         self.font = pygame.font.Font(FONT_NAME, FONT_SIZE_NORMAL)
         self.font_large = pygame.font.Font(FONT_NAME, FONT_SIZE_LARGE)
 
@@ -37,27 +40,54 @@ class Game:
 
     def reset_game(self):
         self.score = 0
+        self.lives = MAX_LIVES
         self.game_state = 'playing'
         self.targets.empty()
         self.bullets.empty()
         self.cannon.rect.centerx = self.cannon.screen_rect.centerx
         self.last_target_spawn = pygame.time.get_ticks()
 
+    def get_difficulty_multiplier(self):
+        multiplier = 1.0 + (self.score // 500) * 0.5
+        return min(multiplier, 10.0)
+
     def spawn_targets(self):
         current_time = pygame.time.get_ticks()
-        if current_time - self.last_target_spawn > self.target_spawn_delay:
+
+        multiplier = self.get_difficulty_multiplier()
+        current_delay = self.base_spawn_delay / (1 + (multiplier - 1) * 0.5)
+
+        if current_time - self.last_target_spawn > current_delay:
             self.last_target_spawn = current_time
-            new_target = Target(self.window, WIDTH)
+
+            if random.random() < 0.1:
+                obj_type = 'heal'
+            else:
+                obj_type = 'enemy'
+
+            new_target = Target(self.window, WIDTH, speed_multiplier=multiplier, obj_type=obj_type)
             self.targets.add(new_target)
 
     def check_collisions(self):
         hits = pygame.sprite.groupcollide(self.bullets, self.targets, True, True)
         if hits:
             for hit_targets in hits.values():
-                self.score += len(hit_targets) * 10
+                for target in hit_targets:
+                    if target.obj_type == 'enemy':
+                        self.score += 100
+                    elif target.obj_type == 'heal':
+                        pass
 
-        if pygame.sprite.spritecollide(self.cannon, self.targets, False):
-            self.game_state = 'game_over'
+        body_hits = pygame.sprite.spritecollide(self.cannon, self.targets, True)
+        if body_hits:
+            for target in body_hits:
+                if target.obj_type == 'enemy':
+                    self.lives -= 1
+                    if self.lives <= 0:
+                        self.game_state = 'game_over'
+                elif target.obj_type == 'heal':
+                    if self.lives < MAX_LIVES:
+                        self.lives += 1
 
     def update_game_state(self):
         mouse_x, _ = pygame.mouse.get_pos()
@@ -71,6 +101,26 @@ class Game:
         text_surface = self.font.render(score_text, True, WHITE)
         text_rect = text_surface.get_rect(topright=(WIDTH - 10, 10))
         self.window.blit(text_surface, text_rect)
+
+        # Отрисовка жизней
+        lives_text = f"Lives: {self.lives}"
+        if self.lives >= 3:
+            color = GREEN
+        elif self.lives == 2:
+            color = (255, 255, 0)
+        else:
+            color = RED
+
+        lives_surf = self.font.render(lives_text, True, color)
+        lives_rect = lives_surf.get_rect(topleft=(10, 10))
+        self.window.blit(lives_surf, lives_rect)
+
+        mult = self.get_difficulty_multiplier()
+        if mult > 1.0:
+            speed_text = f"Speed: x{mult:.1f}"
+            speed_surf = self.font.render(speed_text, True, (200, 200, 255))
+            speed_rect = speed_surf.get_rect(midtop=(WIDTH // 2, 10))
+            self.window.blit(speed_surf, speed_rect)
 
     def run(self):
         while self.play:
@@ -104,8 +154,8 @@ class Game:
     def run_gameover_state(self):
         self.window.fill(BLACK)
 
-        game_over_text = self.font_large.render("GAME OVER", True, WHITE)
-        score_text = self.font.render(f"Your Score: {self.score}", True, WHITE)
+        game_over_text = self.font_large.render("GAME OVER", True, RED)
+        score_text = self.font.render(f"Final Score: {self.score}", True, WHITE)
 
         self.window.blit(game_over_text, game_over_text.get_rect(centerx=WIDTH // 2, centery=HEIGHT // 3))
         self.window.blit(score_text, score_text.get_rect(centerx=WIDTH // 2, centery=HEIGHT // 3 + 80))
